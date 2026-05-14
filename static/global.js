@@ -6,6 +6,15 @@ let isEditing = false;
 let currentBookmarks = [];
 let lastServerText = "";
 
+function safeDecode(str) {
+    try {
+        return decodeURIComponent(str);
+    } catch (e) {
+        console.warn("URL Decode failed:", str);
+        return str;
+    }
+}
+
 // --- 初期化処理 ---
 window.addEventListener('DOMContentLoaded', () => {
     easyMDE = new EasyMDE({
@@ -62,11 +71,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 const xhr = new XMLHttpRequest();
                 xhr.open("GET", "/api/user/me", true, "logout", "logout");
                 xhr.send();
-                
-                xhr.onreadystatechange = function() {
+
+                xhr.onreadystatechange = function () {
                     if (xhr.readyState == 4) {
                         // アドレスバーを汚さずにトップページへリロード
-                        window.location.href = "/"; 
+                        window.location.href = "/";
                     }
                 };
             }
@@ -77,7 +86,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const a = e.target.closest('a');
         if (a && a.getAttribute('href') && a.getAttribute('href').startsWith('/')) {
             e.preventDefault();
-            navigateTo(a.getAttribute('href').substring(1));
+            const rawPath = a.getAttribute('href').substring(1);
+            navigateTo(safeDecode(rawPath));
             // ページ遷移したら検索結果を閉じて入力欄をクリアする
             const searchResults = document.getElementById('search-results');
             if (searchResults) searchResults.style.display = 'none';
@@ -85,11 +95,13 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ★変更: ブラウザのURLからパスを取得する際は必ず decodeURIComponent を通す
     window.addEventListener('popstate', () => {
-        navigateTo(window.location.pathname.substring(1) || 'index', false);
+        const path = safeDecode(window.location.pathname.substring(1)) || 'index';
+        navigateTo(path, false);
     });
 
-    const initialPath = window.location.pathname.substring(1) || 'index';
+    const initialPath = safeDecode(window.location.pathname.substring(1)) || 'index';
     navigateTo(initialPath);
     // --- コンフリクト解消ウィンドウの表示 ---
     document.getElementById('show-diff-btn').addEventListener('click', () => {
@@ -133,7 +145,7 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
 
         try {
-            const res = await fetch(`/api/save/${currentPath}`, {
+            const res = await fetch(`/api/save/${encodeURI(currentPath)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -205,7 +217,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             // マッチしたすべての文字列を <mark> タグで囲む
                             const safePath = escapeHtml(item.path).replace(regex, '<mark>$1</mark>');
                             const safeSnippet = escapeHtml(item.snippet).replace(regex, '<mark>$1</mark>');
-                            return `<a href="/${item.path}" class="search-result-item">
+                            return `<a href="/${encodeURI(item.path)}" class="search-result-item">
                                         <div class="search-path">📄 ${safePath}</div>
                                         <div class="search-snippet">${safeSnippet}</div>
                                     </a>`;
@@ -277,21 +289,23 @@ function renderViewer(mdText) {
 async function navigateTo(path, pushHistory = true) {
     if (!path) path = 'index';
     currentPath = path;
-    if (pushHistory) window.history.pushState({}, "", `/${path}`);
+    if (pushHistory) window.history.pushState({}, "", `/${encodeURI(path)}`);
 
     // ★変更: ページ名を「クリック可能なパンくずリスト」に変換
+    const escapeHtml = (str) => str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+
     const segments = path.split('/');
     let buildPath = "";
     const breadcrumbHtml = segments.map((seg, i) => {
         buildPath += (i === 0 ? "" : "/") + seg;
-        return `<a href="/${buildPath}">${seg}</a>`;
+        // ★修正: href内はエンコード、表示テキストはエスケープしてHTML崩れを防ぐ
+        return `<a href="/${encodeURI(buildPath)}">${escapeHtml(seg)}</a>`;
     }).join('<span style="color: #a1b0c6; margin: 0 8px; font-size: 0.8em;">/</span>');
     document.getElementById('page-title').innerHTML = `📄 ${breadcrumbHtml}`;
-
     document.getElementById('conflict-alert').style.display = 'none';
 
     try {
-        const res = await fetch(`/api/pages/${path}`);
+        const res = await fetch(`/api/pages/${encodeURI(path)}`);
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
         const data = await res.json();
@@ -323,7 +337,7 @@ async function savePage() {
     btn.disabled = true;
 
     try {
-        const res = await fetch(`/api/save/${currentPath}`, {
+        const res = await fetch(`/api/save/${encodeURI(currentPath)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ base_text: currentBaseText, new_text: easyMDE.value() })
@@ -362,7 +376,7 @@ async function addUser() {
 }
 
 async function clearConflict() {
-    await fetch(`/api/conflicts/${currentPath}`, { method: 'DELETE' });
+    await fetch(`/api/conflicts/${encodeURI(currentPath)}`, { method: 'DELETE' });
     document.getElementById('conflict-alert').style.display = 'none';
 }
 
@@ -377,7 +391,7 @@ async function refreshSidebar() {
         updateBookmarkBtn();
 
         document.getElementById('current-user').innerText = userData.username;
-        const makeList = (items) => items.map(item => `<li><a href="/${item}">${item}</a></li>`).join('');
+        const makeList = (items) => items.map(item => `<li><a href="/${encodeURI(item)}">${item}</a></li>`).join('');
         document.getElementById('bookmark-list').innerHTML = makeList(userData.bookmarks);
         document.getElementById('view-history-list').innerHTML = makeList(userData.view_history);
 
@@ -387,7 +401,7 @@ async function refreshSidebar() {
                 const time = parts[0].substring(5, 16);
                 const author = parts[1];
                 const file = parts[2].replace(/\.md$/, '');
-                return `<li><span style="font-size:0.8em; color:#7a869a;">${time} by <b>${author}</b></span> <br> <a href="/${file}">${file}</a></li>`;
+                return `<li><span style="font-size:0.8em; color:#7a869a;">${time} by <b>${author}</b></span> <br> <a href="/${encodeURI(file)}">${file}</a></li>`;
             }
             return '';
         }).join('');
@@ -430,10 +444,12 @@ async function toggleBookmark() {
 function loadPageAssets(path) {
     document.querySelectorAll('.page-specific-asset').forEach(el => el.remove());
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = `/assets/${path}/index.css`; link.className = 'page-specific-asset';
+    // ★変更: アセットのパスもエンコード
+    link.rel = 'stylesheet'; link.href = `/assets/${encodeURI(path)}/index.css`; link.className = 'page-specific-asset';
     document.head.appendChild(link);
     const script = document.createElement('script');
-    script.src = `/assets/${path}/index.js`; script.className = 'page-specific-asset';
+    // ★変更: アセットのパスもエンコード
+    script.src = `/assets/${encodeURI(path)}/index.js`; script.className = 'page-specific-asset';
     script.onerror = () => script.remove();
     document.body.appendChild(script);
 }

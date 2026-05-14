@@ -2,7 +2,7 @@ version: "3.8"
 services:
   wiki-app:
     build: .
-    container_name: minimal-fs-wiki
+    container_name: piste-wiki
     ports:
       - "8000:8000"
     volumes:

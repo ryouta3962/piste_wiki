@@ -28,6 +28,11 @@ if not os.path.exists(f"{BASE_DIR}/index/index.md"):
     os.makedirs(f"{BASE_DIR}/index", exist_ok=True)
     with open(f"{BASE_DIR}/index/index.md", "w", encoding="utf-8") as f:
         f.write("# Welcome to Piste Wiki 👋\n\nフロントページへようこそ！\n\n- ✏️ 右上の **「編集」** ボタンからこのページを書き換えられます。\n- 📄 左の **「新規ページ作成」** ボタンから新しいページを作れます。")
+    # ★追加: 空のアセットファイルを作成
+    with open(f"{BASE_DIR}/index/index.css", "w", encoding="utf-8") as f:
+        f.write("/* ページ専用CSS */\n")
+    with open(f"{BASE_DIR}/index/index.js", "w", encoding="utf-8") as f:
+        f.write("// ページ専用JS\n")
 
 if not os.path.exists(f"{BASE_DIR}/sidebar/index.md"):
     os.makedirs(f"{BASE_DIR}/sidebar", exist_ok=True)
@@ -37,6 +42,11 @@ if not os.path.exists(f"{BASE_DIR}/sidebar/index.md"):
                 "- [📝 カスタムJSの書き方](/manual/js)\n\n"
                 "---\n"
                 "*※ここは自由に書き換えられます。*")
+    # ★追加: 空のアセットファイルを作成
+    with open(f"{BASE_DIR}/sidebar/index.css", "w", encoding="utf-8") as f:
+        f.write("")
+    with open(f"{BASE_DIR}/sidebar/index.js", "w", encoding="utf-8") as f:
+        f.write("")
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     with open(users_file, "r", encoding="utf-8") as f:
@@ -96,6 +106,14 @@ def save_page(page_path: str, req: SavePageRequest, username: str = Depends(get_
     conflict_file = f"{target_dir}/_conflicted.md"
     
     os.makedirs(target_dir, exist_ok=True)
+
+    # ★追加: ページ専用のCSS/JSが存在しなければ空ファイルを作成
+    if not os.path.exists(f"{target_dir}/index.css"):
+        with open(f"{target_dir}/index.css", "w", encoding="utf-8") as f:
+            f.write("")
+    if not os.path.exists(f"{target_dir}/index.js"):
+        with open(f"{target_dir}/index.js", "w", encoding="utf-8") as f:
+            f.write("")
     
     with FileLock(lock_file, timeout=10):
         # ★追加: forceフラグがTrueなら、マージをスキップして強制上書きする

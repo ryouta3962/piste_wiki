@@ -32,9 +32,8 @@
         </div>
 
         <div style="margin-bottom: 20px;">
+            <!-- ユーザー追加ボタンをここから移動しました -->
             <button id="new-page-btn" class="wiki-btn" style="width: 100%; margin-bottom: 10px;">📄 新規ページ作成</button>
-            <button id="add-user-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem;">👥
-                ユーザー追加</button>
         </div>
 
         <div id="custom-sidebar-content" style="margin-bottom: 10px;"></div>
@@ -42,7 +41,6 @@
             <a href="/sidebar" style="font-size: 0.75rem; color: #7a869a;">✏️ メニューを編集</a>
         </div>
 
-        <!-- ★ここから変更: details と summary で囲む -->
         <details open>
             <summary>
                 <h3>⭐ ブックマーク</h3>
@@ -50,7 +48,7 @@
             <ul id="bookmark-list"></ul>
         </details>
 
-        <details> <!-- openを外すと、デフォルトで閉じた状態になります -->
+        <details>
             <summary>
                 <h3>🕒 最近見たページ</h3>
             </summary>
@@ -63,17 +61,18 @@
             </summary>
             <ul id="edit-history-list"></ul>
         </details>
+
+        <!-- ★変更: ここにユーザー追加ボタンを移動し、下部メニューとしてまとめました -->
         <div style="margin-top: 40px; text-align: center; border-top: 1px solid #3c4b62; padding-top: 20px;">
+            <button id="add-user-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem; margin-bottom: 10px;">👥 ユーザー追加</button>
             <button id="logout-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem; background: transparent; color: #a1b0c6; border: 1px solid #3c4b62;">🚪 ログアウト</button>
         </div>
-        <!-- ★ここまで変更 -->
     </aside>
 
     <main id="main-content">
         <div class="header-actions">
             <h1 id="page-title">Loading...</h1>
             <div>
-                <!-- ★修正: 各種ボタンに wiki-btn クラスを付与 -->
                 <button id="bookmark-btn" class="wiki-btn secondary">⭐</button>
                 <button id="edit-btn" class="wiki-btn">✏️ 編集</button>
                 <button id="cancel-btn" class="wiki-btn secondary" style="display: none;">❌ キャンセル</button>
@@ -83,7 +82,6 @@
 
         <div id="conflict-alert">
             ⚠️ <b>競合が発生しました！</b> 他のユーザーの編集と衝突したため、あなたの変更は一時ファイルに退避されました。
-            <!-- ★追加: 競合を確認するボタン -->
             <button id="show-diff-btn" style="background: #ff8b00; margin-left: 10px;">🔍 競合の内容を確認</button>
             <button id="clear-conflict-btn">競合をクリア</button>
         </div>
