@@ -19,7 +19,7 @@ DockerおよびDocker Composeがインストールされている環境であれ
 
 ### 1. リポジトリのクローン
 ```bash
-git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+git clone [https://github.com/ryouta3962/piste_wiki.git](https://github.com/ryouta3962/piste_wiki.git)
 cd your-repo-name
 
 ```
@@ -80,6 +80,4 @@ docker-compose up -d
 * **Markdown Rendering:** EasyMDE, marked.js, DOMPurify (XSS対策)
 * **Diff & Patch:** diff-match-patch (Google)
 * **Infrastructure:** Docker, Docker Compose
-
-## 📄 ライセンス
 
