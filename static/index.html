@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/assets/img/favicon.png" type="image/png">
+    <title>Piste Wiki</title>
+
+    <!-- EasyMDE & FontAwesome -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <!-- Markdown描画とXSS対策 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
+
+    <!-- ★変更: 切り出したCSSを読み込む -->
+    <link rel="stylesheet" href="/assets/global.css">
+</head>
+
+<body>
+
+    <aside id="sidebar">
+        <h2>Piste Wiki</h2>
+        <p>👤 <span id="current-user">Loading...</span></p>
+
+        <div id="search-box-container">
+            <input type="text" id="search-input" placeholder="🔍 ページや内容を検索...">
+            <div id="search-results"></div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <button id="new-page-btn" class="wiki-btn" style="width: 100%; margin-bottom: 10px;">📄 新規ページ作成</button>
+            <button id="add-user-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem;">👥
+                ユーザー追加</button>
+        </div>
+
+        <div id="custom-sidebar-content" style="margin-bottom: 10px;"></div>
+        <div style="text-align: right; margin-bottom: 20px;">
+            <a href="/sidebar" style="font-size: 0.75rem; color: #7a869a;">✏️ メニューを編集</a>
+        </div>
+
+        <!-- ★ここから変更: details と summary で囲む -->
+        <details open>
+            <summary>
+                <h3>⭐ ブックマーク</h3>
+            </summary>
+            <ul id="bookmark-list"></ul>
+        </details>
+
+        <details> <!-- openを外すと、デフォルトで閉じた状態になります -->
+            <summary>
+                <h3>🕒 最近見たページ</h3>
+            </summary>
+            <ul id="view-history-list"></ul>
+        </details>
+
+        <details>
+            <summary>
+                <h3>📝 全体の更新履歴</h3>
+            </summary>
+            <ul id="edit-history-list"></ul>
+        </details>
+        <div style="margin-top: 40px; text-align: center; border-top: 1px solid #3c4b62; padding-top: 20px;">
+            <button id="logout-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem; background: transparent; color: #a1b0c6; border: 1px solid #3c4b62;">🚪 ログアウト</button>
+        </div>
+        <!-- ★ここまで変更 -->
+    </aside>
+
+    <main id="main-content">
+        <div class="header-actions">
+            <h1 id="page-title">Loading...</h1>
+            <div>
+                <!-- ★修正: 各種ボタンに wiki-btn クラスを付与 -->
+                <button id="bookmark-btn" class="wiki-btn secondary">⭐</button>
+                <button id="edit-btn" class="wiki-btn">✏️ 編集</button>
+                <button id="cancel-btn" class="wiki-btn secondary" style="display: none;">❌ キャンセル</button>
+                <button id="save-btn" class="wiki-btn" style="display: none;">💾 保存</button>
+            </div>
+        </div>
+
+        <div id="conflict-alert">
+            ⚠️ <b>競合が発生しました！</b> 他のユーザーの編集と衝突したため、あなたの変更は一時ファイルに退避されました。
+            <!-- ★追加: 競合を確認するボタン -->
+            <button id="show-diff-btn" style="background: #ff8b00; margin-left: 10px;">🔍 競合の内容を確認</button>
+            <button id="clear-conflict-btn">競合をクリア</button>
+        </div>
+
+        <div id="viewer"></div>
+        <div id="editor-container" style="display: none;">
+            <textarea id="editor"></textarea>
+        </div>
+    </main>
+
+    <!-- 差分表示＆解消用モーダル -->
+    <div id="diff-modal-overlay"></div>
+    <div id="diff-modal" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 style="margin: 0; font-size: 1.2rem;">🛠️ コンフリクト解消ウィンドウ</h2>
+            <button id="close-diff-btn" class="wiki-btn secondary">閉じる</button>
+        </div>
+
+        <div style="display: flex; gap: 20px; flex: 1; min-height: 0;">
+            <!-- 左側：差分ビューワー -->
+            <div style="flex: 1; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 5px; font-size: 0.9em; font-weight: bold;">🔍 差分（赤: サーバー / 緑: あなた）</div>
+                <div id="diff-viewer"
+                    style="flex: 1; overflow-y: auto; background: #fafbfc; padding: 15px; border: 1px solid #dfe1e6; font-family: monospace; font-size: 13px; white-space: pre-wrap;">
+                </div>
+            </div>
+
+            <!-- 右側：最終エディタ -->
+            <div style="flex: 1; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 5px; font-size: 0.9em; font-weight: bold;">✏️ 最終的なテキスト（ここで修正してください）</div>
+                <textarea id="conflict-resolver-editor"
+                    style="flex: 1; width: 100%; padding: 15px; border: 1px solid #dfe1e6; border-radius: 4px; font-family: monospace; font-size: 13px; resize: none;"></textarea>
+            </div>
+        </div>
+
+        <!-- アクションボタン -->
+        <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid #dfe1e6;">
+            <button id="force-save-btn" class="wiki-btn" style="background: #006644;">✅ この内容で競合を解消して保存</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+    <script src="/assets/global.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,344 @@
+/* ==========================================
+   1. Base & Variables
+========================================== */
+:root { 
+    --bg-color: #f4f5f7; 
+    --sidebar-width: 260px; 
+    --accent: #0052cc;
+    --text-color: #172b4d;
+    --border-color: #dfe1e6;
+}
+
+* { box-sizing: border-box; }
+
+body { 
+    margin: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    display: flex; 
+    height: 100vh; 
+    background: var(--bg-color); 
+    color: var(--text-color);
+}
+
+/* ==========================================
+   2. App Layout (Sidebar & Main)
+========================================== */
+#sidebar { 
+    width: var(--sidebar-width); 
+    background: #202b3c; 
+    color: #a1b0c6; 
+    padding: 20px; 
+    overflow-y: auto; 
+}
+#sidebar h2 { color: #fff; font-size: 1.2rem; margin-top: 0; }
+#sidebar h3 { font-size: 0.9rem; margin-top: 20px; border-bottom: 1px solid #3c4b62; padding-bottom: 5px; }
+#sidebar ul { list-style: none; padding: 0; margin: 0; }
+#sidebar li { margin-bottom: 8px; font-size: 0.9rem; }
+#sidebar a { color: #a1b0c6; text-decoration: none; display: block; padding: 4px; border-radius: 4px; transition: background 0.2s; }
+#sidebar a:hover { background: #3c4b62; color: #fff; }
+
+#main-content { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    padding: 20px 40px; 
+    overflow-y: auto; 
+    background: #fff; 
+}
+
+/* ==========================================
+   3. UI Components (Header, Buttons, Alerts)
+========================================== */
+.header-actions { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
+    border-bottom: 1px solid var(--border-color); 
+    padding-bottom: 15px;
+}
+.header-actions h1 { margin: 0; font-size: 1.8rem; color: var(--text-color); }
+
+.wiki-btn { 
+    background: var(--accent); 
+    color: white; 
+    border: none; 
+    padding: 8px 16px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-weight: bold; 
+    transition: 0.2s; 
+    font-size: 0.9rem;
+}
+.wiki-btn:hover { background: #0043a6; }
+.wiki-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.wiki-btn.secondary { background: #ebecf0; color: #172b4d; }
+.wiki-btn.secondary:hover { background: #dfe1e6; }
+
+#conflict-alert { 
+    display: none; 
+    background: #ffebe6; 
+    color: #bf2600; 
+    padding: 12px; 
+    border-radius: 4px; 
+    margin-bottom: 15px; 
+    border-left: 4px solid #ff5630; 
+}
+#conflict-alert button { 
+    background: #ff5630; 
+    padding: 4px 8px; 
+    font-size: 0.8rem; 
+    margin-left: 10px; 
+    border: none; 
+    color: white; 
+    border-radius: 3px; 
+    cursor: pointer;
+}
+
+/* ==========================================
+   4. Markdown Viewer Styles (Wiki Core)
+========================================== */
+#viewer { 
+    line-height: 1.6; 
+    font-size: 16px;
+    padding-bottom: 100px; /* 下部に余白を持たせる */
+    word-wrap: break-word;
+}
+
+/* Headings */
+#viewer h1, #viewer h2, #viewer h3, #viewer h4, #viewer h5, #viewer h6 {
+    margin-top: 1.5em;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+#viewer h1 { font-size: 2em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+#viewer h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+#viewer h3 { font-size: 1.25em; }
+
+/* Paragraphs & Links */
+#viewer p { margin-top: 0; margin-bottom: 16px; }
+#viewer a { color: var(--accent); text-decoration: none; }
+#viewer a:hover { text-decoration: underline; }
+
+/* Lists */
+#viewer ul, #viewer ol { padding-left: 2em; margin-top: 0; margin-bottom: 16px; }
+#viewer li + li { margin-top: 0.25em; }
+#viewer li > p { margin-top: 16px; }
+
+/* Blockquotes */
+#viewer blockquote {
+    margin: 0 0 16px 0;
+    padding: 0 1em;
+    color: #6b778c;
+    border-left: 4px solid var(--border-color);
+}
+
+/* Code & Preformatted */
+#viewer code {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: rgba(9, 30, 66, 0.08); /* GitHubライクな薄いグレー */
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+#viewer pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f4f5f7;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+#viewer pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 100%;
+}
+
+/* Tables */
+#viewer table {
+    border-spacing: 0;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+}
+#viewer table th, #viewer table td {
+    padding: 6px 13px;
+    border: 1px solid var(--border-color);
+}
+#viewer table tr:nth-child(2n) {
+    background-color: #fafbfc;
+}
+#viewer table th {
+    font-weight: 600;
+    background-color: #f4f5f7;
+}
+
+/* Images */
+#viewer img {
+    max-width: 100%;
+    box-sizing: content-box;
+    border-radius: 4px;
+}
+
+/* Horizontal Rule */
+#viewer hr {
+    height: 1px;
+    padding: 0;
+    margin: 24px 0;
+    background-color: var(--border-color);
+    border: 0;
+}
+
+/* ==========================================
+   5. Editor Styles (EasyMDE Overrides)
+========================================== */
+#editor-container { flex: 1; display: flex; flex-direction: column; }
+.editor-toolbar { border-radius: 8px 8px 0 0 !important; border: 1px solid var(--border-color) !important; opacity: 1 !important; }
+.CodeMirror { 
+    flex: 1; 
+    min-height: 400px;
+    border-radius: 0 0 8px 8px !important; 
+    border: 1px solid var(--border-color) !important; 
+    border-top: none !important;
+    font-size: 14px; 
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; 
+}
+
+/* ==========================================
+   6. 階層ナビゲーション（パンくずリスト）
+========================================== */
+.header-actions h1 a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.header-actions h1 a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* ==========================================
+   7. サイドバーのアコーディオン（折りたたみ）
+========================================== */
+#sidebar details { margin-bottom: 15px; }
+
+/* summary（タイトル部分）のスタイル */
+#sidebar summary {
+    list-style: none; /* デフォルトの黒い三角を消す */
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    border-bottom: 1px solid #3c4b62;
+    padding-bottom: 5px;
+    margin-top: 15px;
+    transition: opacity 0.2s;
+}
+#sidebar summary:hover { opacity: 0.8; }
+#sidebar summary::-webkit-details-marker { display: none; } /* Safari用 */
+
+/* カスタムアイコン「‣」の設定 */
+#sidebar summary::before {
+    content: "‣";
+    display: inline-block;
+    margin-right: 8px;
+    color: #a1b0c6;
+    font-size: 1.2em;
+    transition: transform 0.2s ease-in-out; /* 開閉時のアニメーション */
+}
+
+/* 開いた状態の時は「‣」を90度回転させて「▼」っぽくする */
+#sidebar details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* summaryの中のh3の余白をリセット */
+#sidebar summary h3 {
+    margin: 0;
+    border: none;
+    padding: 0;
+    font-size: 0.9rem;
+}
+
+/* ==========================================
+   8. 検索機能
+========================================== */
+#search-box-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+#search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #3c4b62;
+    background: #172b4d;
+    color: #fff;
+    outline: none;
+    transition: 0.2s;
+}
+#search-input::placeholder { color: #8c9bab; }
+#search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.3); }
+
+#search-results {
+    display: none;
+    position: absolute;
+    top: 36px;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+.search-result-item {
+    display: block;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-decoration: none !important;
+}
+.search-result-item:hover { background: #f4f5f7; }
+.search-path { font-weight: bold; font-size: 0.9em; color: var(--accent); margin-bottom: 4px; }
+.search-snippet { font-size: 0.8em; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 検索ワードのハイライト */
+mark {
+    background-color: #ffd54f;
+    color: #172b4d;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+}
+
+/* ==========================================
+   9. コンフリクト差分モーダル
+========================================== */
+#diff-modal-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(9, 30, 66, 0.54); z-index: 1999;
+}
+#diff-modal {
+    position: fixed; top: 5%; left: 10%; right: 10%; bottom: 5%;
+    background: #fff; z-index: 2000; border-radius: 6px;
+    box-shadow: 0 8px 16px rgba(9, 30, 66, 0.25);
+    flex-direction: column; padding: 20px;
+}
+#diff-viewer {
+    flex: 1; overflow-y: auto; background: #fafbfc;
+    padding: 15px; border: 1px solid var(--border-color);
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    white-space: pre-wrap; font-size: 14px; line-height: 1.5;
+}
+/* 差分の色設定 */
+#diff-viewer ins { background-color: #e3fcef; color: #006644; text-decoration: none; font-weight: bold; }
+#diff-viewer del { background-color: #ffebe6; color: #bf2600; text-decoration: line-through; }

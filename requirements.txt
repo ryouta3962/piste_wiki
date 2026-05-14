@@ -1,0 +1,5 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+diff-match-patch==20230430
+filelock==3.13.1
+pydantic==2.5.2

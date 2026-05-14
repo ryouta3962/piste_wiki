@@ -1,0 +1,8 @@
+# Python関連
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Wikiの動的データ・システムデータは丸ごと無視
+/wiki_data/

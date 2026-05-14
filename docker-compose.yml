@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  wiki-app:
+    build: .
+    container_name: minimal-fs-wiki
+    ports:
+      - "8000:8000"
+    volumes:
+      # 【超重要】ホストの wiki_data フォルダを、コンテナ内の /app/wiki_data と同期する
+      - ./wiki_data:/app/wiki_data
+      - ./main.py:/app/main.py  # main.pyもホストと同期して、コード変更を即反映
+    environment:
+      - TZ=Asia/Tokyo  # タイムゾーンを日本時間に設定（ログの時刻ズレ防止）
