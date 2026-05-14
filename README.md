@@ -20,8 +20,7 @@ DockerおよびDocker Composeがインストールされている環境であれ
 ### 1. リポジトリのクローン
 ```bash
 git clone [https://github.com/ryouta3962/piste_wiki.git](https://github.com/ryouta3962/piste_wiki.git)
-cd your-repo-name
-
+cd piste_wiki.git
 ```
 
 ### 2. コンテナの起動
