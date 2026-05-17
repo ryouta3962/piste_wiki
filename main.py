@@ -27,7 +27,7 @@ if not os.path.exists(users_file):
 if not os.path.exists(f"{BASE_DIR}/index/index.md"):
     os.makedirs(f"{BASE_DIR}/index", exist_ok=True)
     with open(f"{BASE_DIR}/index/index.md", "w", encoding="utf-8") as f:
-        f.write("# Welcome to Piste Wiki 👋\n\nフロントページへようこそ！\n\n- ✏️ 右上の **「編集」** ボタンからこのページを書き換えられます。\n- 📄 左の **「新規ページ作成」** ボタンから新しいページを作れます。")
+        f.write("# Welcome to Piste Wiki\n\nフロントページへようこそ！\n\n- 右上の **「編集」** ボタンからこのページを書き換えられます。\n- 左の **「新規ページ作成」** ボタンから新しいページを作れます。")
     # ★追加: 空のアセットファイルを作成
     with open(f"{BASE_DIR}/index/index.css", "w", encoding="utf-8") as f:
         f.write("/* ページ専用CSS */\n")
@@ -37,9 +37,9 @@ if not os.path.exists(f"{BASE_DIR}/index/index.md"):
 if not os.path.exists(f"{BASE_DIR}/sidebar/index.md"):
     os.makedirs(f"{BASE_DIR}/sidebar", exist_ok=True)
     with open(f"{BASE_DIR}/sidebar/index.md", "w", encoding="utf-8") as f:
-        f.write("### 📌 メインメニュー\n\n"
-                "- [🏠 ホーム](/index)\n"
-                "- [📝 カスタムJSの書き方](/manual/js)\n\n"
+        f.write("### メインメニュー\n\n"
+                "- [ホーム](/index)\n"
+                "- [カスタムJSの書き方](/manual/js)\n\n"
                 "---\n"
                 "*※ここは自由に書き換えられます。*")
     # ★追加: 空のアセットファイルを作成
@@ -148,7 +148,7 @@ def save_page(page_path: str, req: SavePageRequest, username: str = Depends(get_
             with FileLock(conflict_lock, timeout=5):
                 with open(conflict_file, "a", encoding="utf-8") as f:
                     now = time.strftime("%Y-%m-%d %H:%M:%S")
-                    f.write(f"\n\n### ⚠️ {now} - {username} の競合テキスト\n{req.new_text}\n")
+                    f.write(f"\n\n### [競合] {now} - {username} のテキスト\n{req.new_text}\n")
             
             return {
                 "status": "conflict", 
@@ -219,6 +219,7 @@ def search_pages(q: str = ""):
                         "snippet": snippet
                     })
     return results
+
 # ==========================================
 # 2. ユーザー機能 API
 # ==========================================
@@ -259,6 +260,7 @@ def get_my_profile(username: str = Depends(get_current_username)):
         "view_history": data["view_history"], 
         "edit_history": edit_history
     }
+
 @app.post("/api/user/view")
 def record_view(req: PageRequest, username: str = Depends(get_current_username)):
     data = get_user_data(username)

@@ -5,7 +5,7 @@ version: "3.8"
 services:
   wiki-app:
     build: .
-    container_name: minimal-fs-wiki
+    container_name: piste-wiki
     ports:
       - "8000:8000"
     volumes:
@@ -68,16 +68,26 @@ if not os.path.exists(users_file):
 if not os.path.exists(f"{BASE_DIR}/index/index.md"):
     os.makedirs(f"{BASE_DIR}/index", exist_ok=True)
     with open(f"{BASE_DIR}/index/index.md", "w", encoding="utf-8") as f:
-        f.write("# Welcome to Piste Wiki 👋\n\nフロントページへようこそ！\n\n- ✏️ 右上の **「編集」** ボタンからこのページを書き換えられます。\n- 📄 左の **「新規ページ作成」** ボタンから新しいページを作れます。")
+        f.write("# Welcome to Piste Wiki\n\nフロントページへようこそ！\n\n- 右上の **「編集」** ボタンからこのページを書き換えられます。\n- 左の **「新規ページ作成」** ボタンから新しいページを作れます。")
+    # ★追加: 空のアセットファイルを作成
+    with open(f"{BASE_DIR}/index/index.css", "w", encoding="utf-8") as f:
+        f.write("/* ページ専用CSS */\n")
+    with open(f"{BASE_DIR}/index/index.js", "w", encoding="utf-8") as f:
+        f.write("// ページ専用JS\n")
 
 if not os.path.exists(f"{BASE_DIR}/sidebar/index.md"):
     os.makedirs(f"{BASE_DIR}/sidebar", exist_ok=True)
     with open(f"{BASE_DIR}/sidebar/index.md", "w", encoding="utf-8") as f:
-        f.write("### 📌 メインメニュー\n\n"
-                "- [🏠 ホーム](/index)\n"
-                "- [📝 カスタムJSの書き方](/manual/js)\n\n"
+        f.write("### メインメニュー\n\n"
+                "- [ホーム](/index)\n"
+                "- [カスタムJSの書き方](/manual/js)\n\n"
                 "---\n"
                 "*※ここは自由に書き換えられます。*")
+    # ★追加: 空のアセットファイルを作成
+    with open(f"{BASE_DIR}/sidebar/index.css", "w", encoding="utf-8") as f:
+        f.write("")
+    with open(f"{BASE_DIR}/sidebar/index.js", "w", encoding="utf-8") as f:
+        f.write("")
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     with open(users_file, "r", encoding="utf-8") as f:
@@ -137,6 +147,14 @@ def save_page(page_path: str, req: SavePageRequest, username: str = Depends(get_
     conflict_file = f"{target_dir}/_conflicted.md"
     
     os.makedirs(target_dir, exist_ok=True)
+
+    # ★追加: ページ専用のCSS/JSが存在しなければ空ファイルを作成
+    if not os.path.exists(f"{target_dir}/index.css"):
+        with open(f"{target_dir}/index.css", "w", encoding="utf-8") as f:
+            f.write("")
+    if not os.path.exists(f"{target_dir}/index.js"):
+        with open(f"{target_dir}/index.js", "w", encoding="utf-8") as f:
+            f.write("")
     
     with FileLock(lock_file, timeout=10):
         # ★追加: forceフラグがTrueなら、マージをスキップして強制上書きする
@@ -171,7 +189,7 @@ def save_page(page_path: str, req: SavePageRequest, username: str = Depends(get_
             with FileLock(conflict_lock, timeout=5):
                 with open(conflict_file, "a", encoding="utf-8") as f:
                     now = time.strftime("%Y-%m-%d %H:%M:%S")
-                    f.write(f"\n\n### ⚠️ {now} - {username} の競合テキスト\n{req.new_text}\n")
+                    f.write(f"\n\n### [競合] {now} - {username} のテキスト\n{req.new_text}\n")
             
             return {
                 "status": "conflict", 
@@ -242,6 +260,7 @@ def search_pages(q: str = ""):
                         "snippet": snippet
                     })
     return results
+
 # ==========================================
 # 2. ユーザー機能 API
 # ==========================================
@@ -282,6 +301,7 @@ def get_my_profile(username: str = Depends(get_current_username)):
         "view_history": data["view_history"], 
         "edit_history": edit_history
     }
+
 @app.post("/api/user/view")
 def record_view(req: PageRequest, username: str = Depends(get_current_username)):
     data = get_user_data(username)
@@ -687,6 +707,15 @@ let isEditing = false;
 let currentBookmarks = [];
 let lastServerText = "";
 
+function safeDecode(str) {
+    try {
+        return decodeURIComponent(str);
+    } catch (e) {
+        console.warn("URL Decode failed:", str);
+        return str;
+    }
+}
+
 // --- 初期化処理 ---
 window.addEventListener('DOMContentLoaded', () => {
     easyMDE = new EasyMDE({
@@ -709,7 +738,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // 現在の場所をプロンプト文に表示してあげる
         const newPathInput = prompt(
             `新しいページのパスを入力してください\n` +
-            `📍 現在地: /${currentPath}\n\n` +
+            `[現在地]: /${currentPath}\n\n` +
             `※「./名前」と入力すると、現在のページのサブページとして作成されます。`
         );
 
@@ -743,11 +772,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 const xhr = new XMLHttpRequest();
                 xhr.open("GET", "/api/user/me", true, "logout", "logout");
                 xhr.send();
-                
-                xhr.onreadystatechange = function() {
+
+                xhr.onreadystatechange = function () {
                     if (xhr.readyState == 4) {
                         // アドレスバーを汚さずにトップページへリロード
-                        window.location.href = "/"; 
+                        window.location.href = "/";
                     }
                 };
             }
@@ -758,7 +787,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const a = e.target.closest('a');
         if (a && a.getAttribute('href') && a.getAttribute('href').startsWith('/')) {
             e.preventDefault();
-            navigateTo(a.getAttribute('href').substring(1));
+            const rawPath = a.getAttribute('href').substring(1);
+            navigateTo(safeDecode(rawPath));
             // ページ遷移したら検索結果を閉じて入力欄をクリアする
             const searchResults = document.getElementById('search-results');
             if (searchResults) searchResults.style.display = 'none';
@@ -766,11 +796,13 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ★変更: ブラウザのURLからパスを取得する際は必ず decodeURIComponent を通す
     window.addEventListener('popstate', () => {
-        navigateTo(window.location.pathname.substring(1) || 'index', false);
+        const path = safeDecode(window.location.pathname.substring(1)) || 'index';
+        navigateTo(path, false);
     });
 
-    const initialPath = window.location.pathname.substring(1) || 'index';
+    const initialPath = safeDecode(window.location.pathname.substring(1)) || 'index';
     navigateTo(initialPath);
     // --- コンフリクト解消ウィンドウの表示 ---
     document.getElementById('show-diff-btn').addEventListener('click', () => {
@@ -810,11 +842,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('force-save-btn');
         const resolvedText = document.getElementById('conflict-resolver-editor').value;
 
-        btn.innerText = "⏳ 保存中...";
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
         btn.disabled = true;
 
         try {
-            const res = await fetch(`/api/save/${currentPath}`, {
+            const res = await fetch(`/api/save/${encodeURI(currentPath)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -837,14 +869,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 refreshSidebar();
                 setMode('view');
-                alert("✅ 競合を解消して保存しました！");
+                alert("競合を解消して保存しました！");
             } else {
                 alert("保存に失敗しました。");
             }
         } catch (err) {
             alert("通信エラーが発生しました。");
         } finally {
-            btn.innerText = "✅ この内容で競合を解消して保存";
+            btn.innerHTML = '<i class="fa fa-check"></i> この内容で競合を解消して保存';
             btn.disabled = false;
         }
     });
@@ -886,8 +918,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             // マッチしたすべての文字列を <mark> タグで囲む
                             const safePath = escapeHtml(item.path).replace(regex, '<mark>$1</mark>');
                             const safeSnippet = escapeHtml(item.snippet).replace(regex, '<mark>$1</mark>');
-                            return `<a href="/${item.path}" class="search-result-item">
-                                        <div class="search-path">📄 ${safePath}</div>
+                            return `<a href="/${encodeURI(item.path)}" class="search-result-item">
+                                        <div class="search-path"><i class="fa fa-file-text-o"></i> ${safePath}</div>
                                         <div class="search-snippet">${safeSnippet}</div>
                                     </a>`;
                         }).join('');
@@ -958,21 +990,23 @@ function renderViewer(mdText) {
 async function navigateTo(path, pushHistory = true) {
     if (!path) path = 'index';
     currentPath = path;
-    if (pushHistory) window.history.pushState({}, "", `/${path}`);
+    if (pushHistory) window.history.pushState({}, "", `/${encodeURI(path)}`);
 
     // ★変更: ページ名を「クリック可能なパンくずリスト」に変換
+    const escapeHtml = (str) => str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+
     const segments = path.split('/');
     let buildPath = "";
     const breadcrumbHtml = segments.map((seg, i) => {
         buildPath += (i === 0 ? "" : "/") + seg;
-        return `<a href="/${buildPath}">${seg}</a>`;
+        // ★修正: href内はエンコード、表示テキストはエスケープしてHTML崩れを防ぐ
+        return `<a href="/${encodeURI(buildPath)}">${escapeHtml(seg)}</a>`;
     }).join('<span style="color: #a1b0c6; margin: 0 8px; font-size: 0.8em;">/</span>');
-    document.getElementById('page-title').innerHTML = `📄 ${breadcrumbHtml}`;
-
+    document.getElementById('page-title').innerHTML = `<i class="fa fa-file-text-o"></i> ${breadcrumbHtml}`;
     document.getElementById('conflict-alert').style.display = 'none';
 
     try {
-        const res = await fetch(`/api/pages/${path}`);
+        const res = await fetch(`/api/pages/${encodeURI(path)}`);
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
 
         const data = await res.json();
@@ -993,18 +1027,18 @@ async function navigateTo(path, pushHistory = true) {
 
     } catch (err) {
         console.error("ページの読み込みに失敗しました", err);
-        renderViewer("## ⚠️ 読み込みエラー\n通信に失敗しました。");
+        renderViewer("## 読み込みエラー\n通信に失敗しました。");
     }
 }
 
 // --- 保存処理 ---
 async function savePage() {
     const btn = document.getElementById('save-btn');
-    btn.innerText = "⏳ 保存中...";
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
     btn.disabled = true;
 
     try {
-        const res = await fetch(`/api/save/${currentPath}`, {
+        const res = await fetch(`/api/save/${encodeURI(currentPath)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ base_text: currentBaseText, new_text: easyMDE.value() })
@@ -1014,18 +1048,22 @@ async function savePage() {
         if (result.status === "success") {
             currentBaseText = easyMDE.value();
             renderViewer(currentBaseText);
-            btn.innerText = "✅ 保存完了";
+            btn.innerHTML = '<i class="fa fa-check"></i> 保存完了';
             refreshSidebar();
-            setTimeout(() => { btn.innerText = "💾 保存"; btn.disabled = false; setMode('view'); }, 1000);
+            setTimeout(() => { 
+                btn.innerHTML = '<i class="fa fa-floppy-o"></i> 保存'; 
+                btn.disabled = false; 
+                setMode('view'); 
+            }, 1000);
         } else {
             lastServerText = result.server_text || "";
             document.getElementById('conflict-alert').style.display = 'block';
-            btn.innerText = "💾 保存";
+            btn.innerHTML = '<i class="fa fa-floppy-o"></i> 保存';
             btn.disabled = false;
         }
     } catch (err) {
         alert("保存に失敗しました。");
-        btn.innerText = "💾 保存";
+        btn.innerHTML = '<i class="fa fa-floppy-o"></i> 保存';
         btn.disabled = false;
     }
 }
@@ -1038,12 +1076,12 @@ async function addUser() {
     if (!password) return;
     try {
         const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
-        alert(res.ok ? "✅ 作成しました！" : "❌ 作成失敗");
+        alert(res.ok ? "ユーザーを作成しました！" : "作成に失敗しました");
     } catch (err) { alert("通信エラー"); }
 }
 
 async function clearConflict() {
-    await fetch(`/api/conflicts/${currentPath}`, { method: 'DELETE' });
+    await fetch(`/api/conflicts/${encodeURI(currentPath)}`, { method: 'DELETE' });
     document.getElementById('conflict-alert').style.display = 'none';
 }
 
@@ -1058,7 +1096,7 @@ async function refreshSidebar() {
         updateBookmarkBtn();
 
         document.getElementById('current-user').innerText = userData.username;
-        const makeList = (items) => items.map(item => `<li><a href="/${item}">${item}</a></li>`).join('');
+        const makeList = (items) => items.map(item => `<li><a href="/${encodeURI(item)}">${item}</a></li>`).join('');
         document.getElementById('bookmark-list').innerHTML = makeList(userData.bookmarks);
         document.getElementById('view-history-list').innerHTML = makeList(userData.view_history);
 
@@ -1068,7 +1106,7 @@ async function refreshSidebar() {
                 const time = parts[0].substring(5, 16);
                 const author = parts[1];
                 const file = parts[2].replace(/\.md$/, '');
-                return `<li><span style="font-size:0.8em; color:#7a869a;">${time} by <b>${author}</b></span> <br> <a href="/${file}">${file}</a></li>`;
+                return `<li><span style="font-size:0.8em; color:#7a869a;">${time} by <b>${author}</b></span> <br> <a href="/${encodeURI(file)}">${file}</a></li>`;
             }
             return '';
         }).join('');
@@ -1095,10 +1133,10 @@ async function refreshSidebar() {
 function updateBookmarkBtn() {
     const btn = document.getElementById('bookmark-btn');
     if (currentBookmarks.includes(currentPath)) {
-        btn.innerText = "⭐ 登録済み";
+        btn.innerHTML = '<i class="fa fa-star"></i> 登録済み';
         btn.classList.remove('secondary'); // アクセントカラー（青）にする
     } else {
-        btn.innerText = "☆ ブックマーク";
+        btn.innerHTML = '<i class="fa fa-star-o"></i> ブックマーク';
         btn.classList.add('secondary');   // グレーにする
     }
 }
@@ -1111,10 +1149,12 @@ async function toggleBookmark() {
 function loadPageAssets(path) {
     document.querySelectorAll('.page-specific-asset').forEach(el => el.remove());
     const link = document.createElement('link');
-    link.rel = 'stylesheet'; link.href = `/assets/${path}/index.css`; link.className = 'page-specific-asset';
+    // ★変更: アセットのパスもエンコード
+    link.rel = 'stylesheet'; link.href = `/assets/${encodeURI(path)}/index.css`; link.className = 'page-specific-asset';
     document.head.appendChild(link);
     const script = document.createElement('script');
-    script.src = `/assets/${path}/index.js`; script.className = 'page-specific-asset';
+    // ★変更: アセットのパスもエンコード
+    script.src = `/assets/${encodeURI(path)}/index.js`; script.className = 'page-specific-asset';
     script.onerror = () => script.remove();
     document.body.appendChild(script);
 }
@@ -1147,67 +1187,65 @@ FILE: ./static/index.html
 
     <aside id="sidebar">
         <h2>Piste Wiki</h2>
-        <p>👤 <span id="current-user">Loading...</span></p>
+        <p><i class="fa fa-user"></i> <span id="current-user">Loading...</span></p>
 
         <div id="search-box-container">
-            <input type="text" id="search-input" placeholder="🔍 ページや内容を検索...">
+            <input type="text" id="search-input" placeholder="ページや内容を検索...">
             <div id="search-results"></div>
         </div>
 
         <div style="margin-bottom: 20px;">
-            <button id="new-page-btn" class="wiki-btn" style="width: 100%; margin-bottom: 10px;">📄 新規ページ作成</button>
-            <button id="add-user-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem;">👥
-                ユーザー追加</button>
+            <!-- ユーザー追加ボタンをここから移動しました -->
+            <button id="new-page-btn" class="wiki-btn" style="width: 100%; margin-bottom: 10px;"><i class="fa fa-plus-circle"></i> 新規ページ作成</button>
         </div>
 
         <div id="custom-sidebar-content" style="margin-bottom: 10px;"></div>
         <div style="text-align: right; margin-bottom: 20px;">
-            <a href="/sidebar" style="font-size: 0.75rem; color: #7a869a;">✏️ メニューを編集</a>
+            <a href="/sidebar" style="font-size: 0.75rem; color: #7a869a;"><i class="fa fa-pencil"></i> メニューを編集</a>
         </div>
 
-        <!-- ★ここから変更: details と summary で囲む -->
         <details open>
             <summary>
-                <h3>⭐ ブックマーク</h3>
+                <h3><i class="fa fa-star"></i> ブックマーク</h3>
             </summary>
             <ul id="bookmark-list"></ul>
         </details>
 
-        <details> <!-- openを外すと、デフォルトで閉じた状態になります -->
+        <details>
             <summary>
-                <h3>🕒 最近見たページ</h3>
+                <h3><i class="fa fa-clock-o"></i> 最近見たページ</h3>
             </summary>
             <ul id="view-history-list"></ul>
         </details>
 
         <details>
             <summary>
-                <h3>📝 全体の更新履歴</h3>
+                <h3><i class="fa fa-history"></i> 全体の更新履歴</h3>
             </summary>
             <ul id="edit-history-list"></ul>
         </details>
+
+        <!-- ★変更: ここにユーザー追加ボタンを移動し、下部メニューとしてまとめました -->
         <div style="margin-top: 40px; text-align: center; border-top: 1px solid #3c4b62; padding-top: 20px;">
-            <button id="logout-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem; background: transparent; color: #a1b0c6; border: 1px solid #3c4b62;">🚪 ログアウト</button>
+            <button id="add-user-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem; margin-bottom: 10px;"><i class="fa fa-user-plus"></i> ユーザー追加</button>
+            <button id="logout-btn" class="wiki-btn secondary" style="width: 100%; font-size: 0.8rem; background: transparent; color: #a1b0c6; border: 1px solid #3c4b62;"><i class="fa fa-sign-out"></i> ログアウト</button>
         </div>
-        <!-- ★ここまで変更 -->
     </aside>
 
     <main id="main-content">
         <div class="header-actions">
             <h1 id="page-title">Loading...</h1>
             <div>
-                <!-- ★修正: 各種ボタンに wiki-btn クラスを付与 -->
-                <button id="bookmark-btn" class="wiki-btn secondary">⭐</button>
-                <button id="edit-btn" class="wiki-btn">✏️ 編集</button>
-                <button id="cancel-btn" class="wiki-btn secondary" style="display: none;">❌ キャンセル</button>
-                <button id="save-btn" class="wiki-btn" style="display: none;">💾 保存</button>
+                <button id="bookmark-btn" class="wiki-btn secondary"><i class="fa fa-star-o"></i></button>
+                <button id="edit-btn" class="wiki-btn"><i class="fa fa-pencil"></i> 編集</button>
+                <button id="cancel-btn" class="wiki-btn secondary" style="display: none;"><i class="fa fa-times"></i> キャンセル</button>
+                <button id="save-btn" class="wiki-btn" style="display: none;"><i class="fa fa-floppy-o"></i> 保存</button>
             </div>
         </div>
 
         <div id="conflict-alert">
-            ⚠️ <b>競合が発生しました！</b> 他のユーザーの編集と衝突したため、あなたの変更は一時ファイルに退避されました。
-            <!-- ★追加: 競合を確認するボタン -->
-            <button id="show-diff-btn" style="background: #ff8b00; margin-left: 10px;">🔍 競合の内容を確認</button>
+            <i class="fa fa-exclamation-triangle"></i> <b>競合が発生しました！</b> 他のユーザーの編集と衝突したため、あなたの変更は一時ファイルに退避されました。
+            <button id="show-diff-btn" style="background: #ff8b00; margin-left: 10px;"><i class="fa fa-eye"></i> 競合の内容を確認</button>
             <button id="clear-conflict-btn">競合をクリア</button>
         </div>
 
@@ -1221,14 +1259,14 @@ FILE: ./static/index.html
     <div id="diff-modal-overlay"></div>
     <div id="diff-modal" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h2 style="margin: 0; font-size: 1.2rem;">🛠️ コンフリクト解消ウィンドウ</h2>
+            <h2 style="margin: 0; font-size: 1.2rem;"><i class="fa fa-wrench"></i> コンフリクト解消ウィンドウ</h2>
             <button id="close-diff-btn" class="wiki-btn secondary">閉じる</button>
         </div>
 
         <div style="display: flex; gap: 20px; flex: 1; min-height: 0;">
             <!-- 左側：差分ビューワー -->
             <div style="flex: 1; display: flex; flex-direction: column;">
-                <div style="margin-bottom: 5px; font-size: 0.9em; font-weight: bold;">🔍 差分（赤: サーバー / 緑: あなた）</div>
+                <div style="margin-bottom: 5px; font-size: 0.9em; font-weight: bold;"><i class="fa fa-exchange"></i> 差分（赤: サーバー / 緑: あなた）</div>
                 <div id="diff-viewer"
                     style="flex: 1; overflow-y: auto; background: #fafbfc; padding: 15px; border: 1px solid #dfe1e6; font-family: monospace; font-size: 13px; white-space: pre-wrap;">
                 </div>
@@ -1236,7 +1274,7 @@ FILE: ./static/index.html
 
             <!-- 右側：最終エディタ -->
             <div style="flex: 1; display: flex; flex-direction: column;">
-                <div style="margin-bottom: 5px; font-size: 0.9em; font-weight: bold;">✏️ 最終的なテキスト（ここで修正してください）</div>
+                <div style="margin-bottom: 5px; font-size: 0.9em; font-weight: bold;"><i class="fa fa-edit"></i> 最終的なテキスト（ここで修正してください）</div>
                 <textarea id="conflict-resolver-editor"
                     style="flex: 1; width: 100%; padding: 15px; border: 1px solid #dfe1e6; border-radius: 4px; font-family: monospace; font-size: 13px; resize: none;"></textarea>
             </div>
@@ -1244,7 +1282,7 @@ FILE: ./static/index.html
 
         <!-- アクションボタン -->
         <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid #dfe1e6;">
-            <button id="force-save-btn" class="wiki-btn" style="background: #006644;">✅ この内容で競合を解消して保存</button>
+            <button id="force-save-btn" class="wiki-btn" style="background: #006644;"><i class="fa fa-check"></i> この内容で競合を解消して保存</button>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
@@ -1252,3 +1290,21 @@ FILE: ./static/index.html
 </body>
 
 </html>
+----------------------------------------
+FILE: ./wiki_data/index/index.css
+----------------------------------------
+/* ページ専用CSS */
+
+----------------------------------------
+FILE: ./wiki_data/index/index.js
+----------------------------------------
+// ページ専用JS
+
+----------------------------------------
+FILE: ./wiki_data/sidebar/index.css
+----------------------------------------
+
+----------------------------------------
+FILE: ./wiki_data/sidebar/index.js
+----------------------------------------
+

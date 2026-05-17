@@ -37,7 +37,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // 現在の場所をプロンプト文に表示してあげる
         const newPathInput = prompt(
             `新しいページのパスを入力してください\n` +
-            `📍 現在地: /${currentPath}\n\n` +
+            `[現在地]: /${currentPath}\n\n` +
             `※「./名前」と入力すると、現在のページのサブページとして作成されます。`
         );
 
@@ -141,7 +141,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('force-save-btn');
         const resolvedText = document.getElementById('conflict-resolver-editor').value;
 
-        btn.innerText = "⏳ 保存中...";
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
         btn.disabled = true;
 
         try {
@@ -168,14 +168,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 refreshSidebar();
                 setMode('view');
-                alert("✅ 競合を解消して保存しました！");
+                alert("競合を解消して保存しました！");
             } else {
                 alert("保存に失敗しました。");
             }
         } catch (err) {
             alert("通信エラーが発生しました。");
         } finally {
-            btn.innerText = "✅ この内容で競合を解消して保存";
+            btn.innerHTML = '<i class="fa fa-check"></i> この内容で競合を解消して保存';
             btn.disabled = false;
         }
     });
@@ -218,7 +218,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             const safePath = escapeHtml(item.path).replace(regex, '<mark>$1</mark>');
                             const safeSnippet = escapeHtml(item.snippet).replace(regex, '<mark>$1</mark>');
                             return `<a href="/${encodeURI(item.path)}" class="search-result-item">
-                                        <div class="search-path">📄 ${safePath}</div>
+                                        <div class="search-path"><i class="fa fa-file-text-o"></i> ${safePath}</div>
                                         <div class="search-snippet">${safeSnippet}</div>
                                     </a>`;
                         }).join('');
@@ -301,7 +301,7 @@ async function navigateTo(path, pushHistory = true) {
         // ★修正: href内はエンコード、表示テキストはエスケープしてHTML崩れを防ぐ
         return `<a href="/${encodeURI(buildPath)}">${escapeHtml(seg)}</a>`;
     }).join('<span style="color: #a1b0c6; margin: 0 8px; font-size: 0.8em;">/</span>');
-    document.getElementById('page-title').innerHTML = `📄 ${breadcrumbHtml}`;
+    document.getElementById('page-title').innerHTML = `<i class="fa fa-file-text-o"></i> ${breadcrumbHtml}`;
     document.getElementById('conflict-alert').style.display = 'none';
 
     try {
@@ -326,14 +326,14 @@ async function navigateTo(path, pushHistory = true) {
 
     } catch (err) {
         console.error("ページの読み込みに失敗しました", err);
-        renderViewer("## ⚠️ 読み込みエラー\n通信に失敗しました。");
+        renderViewer("## 読み込みエラー\n通信に失敗しました。");
     }
 }
 
 // --- 保存処理 ---
 async function savePage() {
     const btn = document.getElementById('save-btn');
-    btn.innerText = "⏳ 保存中...";
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 保存中...';
     btn.disabled = true;
 
     try {
@@ -347,18 +347,22 @@ async function savePage() {
         if (result.status === "success") {
             currentBaseText = easyMDE.value();
             renderViewer(currentBaseText);
-            btn.innerText = "✅ 保存完了";
+            btn.innerHTML = '<i class="fa fa-check"></i> 保存完了';
             refreshSidebar();
-            setTimeout(() => { btn.innerText = "💾 保存"; btn.disabled = false; setMode('view'); }, 1000);
+            setTimeout(() => { 
+                btn.innerHTML = '<i class="fa fa-floppy-o"></i> 保存'; 
+                btn.disabled = false; 
+                setMode('view'); 
+            }, 1000);
         } else {
             lastServerText = result.server_text || "";
             document.getElementById('conflict-alert').style.display = 'block';
-            btn.innerText = "💾 保存";
+            btn.innerHTML = '<i class="fa fa-floppy-o"></i> 保存';
             btn.disabled = false;
         }
     } catch (err) {
         alert("保存に失敗しました。");
-        btn.innerText = "💾 保存";
+        btn.innerHTML = '<i class="fa fa-floppy-o"></i> 保存';
         btn.disabled = false;
     }
 }
@@ -371,7 +375,7 @@ async function addUser() {
     if (!password) return;
     try {
         const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
-        alert(res.ok ? "✅ 作成しました！" : "❌ 作成失敗");
+        alert(res.ok ? "ユーザーを作成しました！" : "作成に失敗しました");
     } catch (err) { alert("通信エラー"); }
 }
 
@@ -428,10 +432,10 @@ async function refreshSidebar() {
 function updateBookmarkBtn() {
     const btn = document.getElementById('bookmark-btn');
     if (currentBookmarks.includes(currentPath)) {
-        btn.innerText = "⭐ 登録済み";
+        btn.innerHTML = '<i class="fa fa-star"></i> 登録済み';
         btn.classList.remove('secondary'); // アクセントカラー（青）にする
     } else {
-        btn.innerText = "☆ ブックマーク";
+        btn.innerHTML = '<i class="fa fa-star-o"></i> ブックマーク';
         btn.classList.add('secondary');   // グレーにする
     }
 }
